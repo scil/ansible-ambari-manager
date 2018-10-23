@@ -9,7 +9,7 @@
         group: "{{ remote_ambari_server_group }}"
         mode: 0777
     - include_role:
-        name: ambari-server
+        name: ../../roles/ambari-server
         tasks_from: post-blueprint
     - name: Generate cluster creation template
       template:
@@ -19,5 +19,5 @@
         group: "{{ remote_ambari_server_group }}"
         mode: 0777
     - include_role:
-        name: ambari-server
+        name: ../../roles/ambari-server
         tasks_from: post-cluster

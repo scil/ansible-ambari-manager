@@ -3,4 +3,10 @@
 - name: Ambari-Server setup
   become: true
   command: ambari-server setup -s
-  when: ambari_server_status.rc > 0
+  when: ambari_server_status.rc > 0 and ambari_jdk is not defined
+ 
+
+- name: Ambari-Server setup
+  become: true
+  command: ambari-server setup -s -j {{  ambari_jdk  }}
+  when: ambari_server_status.rc > 0 and ambari_jdk is defined

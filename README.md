@@ -5,6 +5,9 @@
 
 ## Requirements:
 
+Update hostname on each host
+see [Set the Hostname](https://docs.hortonworks.com/HDPDocuments/Ambari-2.2.1.0/bk_Installing_HDP_AMB/content/_set_the_hostname.html)
+
 Install ansible (2.4.x -) 
 ```bash
 pip install ansible
@@ -31,6 +34,8 @@ docker-compose run ansible-ambari-manager ansible -i hosts.sample ambari-server 
 Create an invertory file (based on hosts.sample) with proper hosts/variables which can be used for the playbooks.
 Also make sure the default variables (group_vars/all) is redefined in your inventory file if it's required
 
+Please use the right hostname for each hosts.
+
 ## Examples
 
 ### Run command on group
@@ -38,49 +43,51 @@ Also make sure the default variables (group_vars/all) is redefined in your inven
 ansible -i hosts ambari-server -m shell -a "echo hello"
 ```
 
-### Install Ambari 2.6:
+### Install 
+
+install Ambari 2.7:
 ```bash
-ansible-playbook -i hosts.sample playbooks/install-ambari-2_6.yml --extra-vars "ambari_build_number=103"
+ansible-playbook -i hosts.sample playbooks/install-ambari-2_7.yml --extra-vars "ambari_build_number=103"
 ```
 
-### Install Ambari 2.6 to be run as non-root user:
+Install Ambari 2.7 to be run as non-root user:
 
 ```bash
-ansible-playbook playbooks/install-ambari-2_6.yml --extra-vars "remote_ambari_server_user=ambari-server remote_ambari_agent_user=ambari-agent"
+ansible-playbook playbooks/install-ambari-2_7.yml --extra-vars "remote_ambari_server_user=ambari-server remote_ambari_agent_user=ambari-agent"
+#  (`libselinux-python` may be required if using SELinux)
 ```
 
-(`libselinux-python` may be required if using SELinux)
+ Install Solr Metrics Sink mpack:
+[AMS Solr Sink for Ambari Infra Solr](https://github.com/oleewere/ams-solr-metrics-mpack)
+(not compatible with Ambari 2.7.0+, but metrics sink is built-in for Infra Solr from 2.7.0)
 
-### Setup Kerberos:
-```bash
-ansible-playbook -i hosts.sample playbooks/setup-kerberos.yml --extra-vars "kerberos_domain_realm=ambari.apache.org"
-```
-
-### Install Solr Metrics Sink mpack:
 ```bash
 ansible-playbook -i hosts.sample playbooks/mpacks/install-infra-solr-metrics-mpack.yml
 ```
 
-### Install Solr Metrics Sink service/components:
+Install Solr Metrics Sink service/components:
 ```bash
 ansible-playbook -i hosts.sample playbooks/mpacks/add-infra-solr-metrics-mpack.yml
 ```
 
-### Upgarde Ambari (e.g.: 2.6.0.0 -> 3.0.0.0)
-```bash
-ansible-playbook -i hosts.sample playbooks/upgrade-ambari-packages.yml -v --extra-vars "ambari_base_url=http://s3.amazonaws.com/dev.hortonworks.com/ambari/centos6/3.x/BUILDS/3.0.0.0-1116 ambari_version=3.0.0.0 ambari_build_number=1116"
-```
-
-### Upgarde Ambari - build number change only (2.6.0.0-102 -> 2.6.0.0-113)
-```bash
-ansible-playbook -i hosts.sample playbooks/upgrade-ambari-packages.yml -v --extra-vars "ambari_base_url=http://s3.amazonaws.com/dev.hortonworks.com/ambari/centos6/2.x/BUILDS/2.6.0.0-113 ambari_version=2.6.0.0 ambari_build_number=113 skip_ambari_server_upgrade_command=True"
-```
-
-### Install Ambari from base repo url
+Install Ambari from base repo url
 ```bash
 # it will ask ambari_repo_base_url parameter with a prompt (value can be like: http://s3.amazonaws.com/dev.hortonworks.com/ambari/centos7/2.x/BUILDS/2.7.0.0-180)
 ansible-playbook -i hosts.sample playbooks/install-ambari.yml
 ```
+
+### Upgarde 
+
+Upgarde Ambari (e.g.: 2.6.0.0 -> 3.0.0.0)
+```bash
+ansible-playbook -i hosts.sample playbooks/upgrade-ambari-packages.yml -v --extra-vars "ambari_base_url=http://s3.amazonaws.com/dev.hortonworks.com/ambari/centos6/3.x/BUILDS/3.0.0.0-1116 ambari_version=3.0.0.0 ambari_build_number=1116"
+```
+
+Upgarde Ambari - build number change only (2.6.0.0-102 -> 2.6.0.0-113)
+```bash
+ansible-playbook -i hosts.sample playbooks/upgrade-ambari-packages.yml -v --extra-vars "ambari_base_url=http://s3.amazonaws.com/dev.hortonworks.com/ambari/centos6/2.x/BUILDS/2.6.0.0-113 ambari_version=2.6.0.0 ambari_build_number=113 skip_ambari_server_upgrade_command=True"
+```
+
 
 ### Install Ambari cluster with blueprint
 
@@ -102,6 +109,52 @@ bp_master_components=INFRA_SOLR,INFRA_SOLR_CLIENT
 bp_slave_components=INFRA_SOLR_CLIENT
 ```
 
+### Upload
+
+Upload local stack to remote (common-services and stack)
+```bash
+# required: local_ambari_location in inventory file
+ansible-playbook -i hosts.sample playbooks/local/upload-stack.yml -v
+```
+Or you can upload only one service as well: (add stack_service var)
+```bash
+ansible-playbook -i hosts playbooks/local/upload-stack.yml -v --extra-vars "stack_service=AMBARI_INFRA"
+```
+
+ Upload local Ambari agent python files to remote
+
+```bash
+ansible-playbook -i hosts.sample playbooks/local/upload-ambari-agent-python.yml -v
+```
+
+### Restart an Ambari service
+
+```bash
+ansible-playbook -i hosts.sample playbooks/service/restart.yml --extra-vars "service_name=AMBARI_INFRA" -v
+```
+
+### Save internal hostname and public IP addresses file from GCE cluster
+```bash
+# save to out/gce_hostnames file with internal hostname ip address pairs (you can put that into /etc/hosts)
+ansible-playbook -i hosts playbooks/gce/gce-get-hosts.yml -v --extra-vars="gce_cluster_name=mycluster"
+# save to out/gce_hostname file with only internal hostnames (you can put that into your inventory file)
+ansible-playbook -i hosts playbooks/gce/gce-get-hosts.yml -v --extra-vars="gce_cluster_name=perf-solr gce_only_internal_address=true"
+# or you can just print a public address to one hostname
+ansible-playbook -i hosts playbooks/gce/print-public-ip.yml --extra-vars="gce_cluster_name=mycluster gce_hostname=hostname.internal"
+```
+
+
+## Authentication examples
+
+now only for centos
+
+
+### Setup Kerberos:
+
+
+```bash
+ansible-playbook -i hosts.sample playbooks/setup-kerberos.yml --extra-vars "kerberos_domain_realm=ambari.apache.org"
+```
 ### Install Ambari cluster with blueprint + kerberos
 
 ```bash
@@ -134,38 +187,6 @@ Note: Ranger Admin will be installed on Ambari Server host.
 # (note: make sure kinit group points to that host where the service running)
 
 ansible-playbook -i hosts.sample playbooks/local-kinit.yml -v
-```
-
-### Upload local stack to remote (common-services and stack)
-```bash
-# required: local_ambari_location in inventory file
-ansible-playbook -i hosts.sample playbooks/local/upload-stack.yml -v
-```
-Or you can upload only one service as well: (add stack_service var)
-```bash
-ansible-playbook -i hosts playbooks/local/upload-stack.yml -v --extra-vars "stack_service=AMBARI_INFRA"
-```
-
-### Upload local Ambari agent python files to remote
-
-```bash
-ansible-playbook -i hosts.sample playbooks/local/upload-ambari-agent-python.yml -v
-```
-
-### Restart an Ambari service
-
-```bash
-ansible-playbook -i hosts.sample playbooks/service/restart.yml --extra-vars "service_name=AMBARI_INFRA" -v
-```
-
-### Save internal hostname and public IP addresses file from GCE cluster
-```bash
-# save to out/gce_hostnames file with internal hostname ip address pairs (you can put that into /etc/hosts)
-ansible-playbook -i hosts playbooks/gce/gce-get-hosts.yml -v --extra-vars="gce_cluster_name=mycluster"
-# save to out/gce_hostname file with only internal hostnames (you can put that into your inventory file)
-ansible-playbook -i hosts playbooks/gce/gce-get-hosts.yml -v --extra-vars="gce_cluster_name=perf-solr gce_only_internal_address=true"
-# or you can just print a public address to one hostname
-ansible-playbook -i hosts playbooks/gce/print-public-ip.yml --extra-vars="gce_cluster_name=mycluster gce_hostname=hostname.internal"
 ```
 
 ### Ranger/Solr scale testing
