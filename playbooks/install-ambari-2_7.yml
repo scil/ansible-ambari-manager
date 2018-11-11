@@ -1,5 +1,8 @@
 - hosts: ambari-server ambari-agent
   become: true
+  tags:
+    - ambari_server
+    - ambari_agent
   vars:
     ambari_version: 2.7.1.0
     ambari_base_version: "{{ ambari_version[0] }}.x"
@@ -13,6 +16,8 @@
 
 - hosts: ambari-server
   become: true
+  tags:
+    - ambari_server
   tasks:
     - include_tasks: ../roles/ambari-server/tasks/install-{{ ansible_os_family }}.yml
     - import_tasks: ../roles/ambari-server/tasks/sudo.yml
@@ -22,6 +27,8 @@
 
 - hosts: ambari-agent
   become: true
+  tags:
+    - ambari_agent
   tasks:
     - include_tasks: ../roles/ambari-agent/tasks/install-{{ ansible_os_family }}.yml
     - import_tasks: ../roles/ambari-agent/tasks/setup.yml # must come before sudo stuff
